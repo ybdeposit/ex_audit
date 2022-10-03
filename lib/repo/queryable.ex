@@ -17,7 +17,7 @@ defmodule ExAudit.Queryable do
     Ecto.Repo.Queryable.delete_all(module, queryable, opts)
   end
 
-  def history(module, struct, opts) do
+  def history(module, struct, query_callback, {adapter_meta, opts}) do
     query =
       from(
         v in version_schema(),
@@ -40,7 +40,7 @@ defmodule ExAudit.Queryable do
           )
       end
 
-    versions = Ecto.Repo.Queryable.all(module, query, opts)
+    versions = query_callback.(module, query, {adapter_meta, opts})
 
     if Keyword.get(opts, :render_struct, false) do
       {versions, oldest_struct} =
@@ -76,16 +76,16 @@ defmodule ExAudit.Queryable do
 
   def history_query(%{id: id, __struct__: struct}) do
     from(
-        v in version_schema(),
-        where: v.entity_id == ^id,
-        where: v.entity_schema == ^struct,
-        order_by: [desc: :recorded_at]
-      )
+      v in version_schema(),
+      where: v.entity_id == ^id,
+      where: v.entity_schema == ^struct,
+      order_by: [desc: :recorded_at]
+    )
   end
 
   @drop_fields [:__meta__, :__struct__]
 
-  def revert(module, version, opts) do
+  def revert(module, version, {adapter_meta, opts}) do
     import Ecto.Query
 
     # get the history of the entity after this version
@@ -141,7 +141,7 @@ defmodule ExAudit.Queryable do
       end)
 
     if action do
-      res = apply(module, action, [changeset, opts])
+      res = apply(module, action, [changeset, {adapter_meta, opts}])
 
       case action do
         :delete -> {:ok, nil}

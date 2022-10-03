@@ -99,7 +99,7 @@ defmodule ExAudit.Repo do
             __MODULE__,
             get_dynamic_repo(),
             struct,
-            opts
+            Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
           )
         else
           super(struct, opts)
@@ -112,7 +112,7 @@ defmodule ExAudit.Repo do
             __MODULE__,
             get_dynamic_repo(),
             struct,
-            opts
+            Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
           )
         else
           super(struct, opts)
@@ -125,7 +125,7 @@ defmodule ExAudit.Repo do
             __MODULE__,
             get_dynamic_repo(),
             changeset,
-            opts
+            Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
           )
         else
           super(changeset, opts)
@@ -138,7 +138,7 @@ defmodule ExAudit.Repo do
             __MODULE__,
             get_dynamic_repo(),
             struct,
-            opts
+            Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
           )
         else
           super(struct, opts)
@@ -151,7 +151,7 @@ defmodule ExAudit.Repo do
             __MODULE__,
             get_dynamic_repo(),
             struct,
-            opts
+            Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
           )
         else
           super(struct, opts)
@@ -164,7 +164,7 @@ defmodule ExAudit.Repo do
             __MODULE__,
             get_dynamic_repo(),
             struct,
-            opts
+            Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
           )
         else
           super(struct, opts)
@@ -177,7 +177,7 @@ defmodule ExAudit.Repo do
             __MODULE__,
             get_dynamic_repo(),
             changeset,
-            opts
+            Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
           )
         else
           super(changeset, opts)
@@ -190,27 +190,32 @@ defmodule ExAudit.Repo do
             __MODULE__,
             get_dynamic_repo(),
             struct,
-            opts
+            Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
           )
         else
           super(struct, opts)
         end
       end
 
-      def default_options(_operation), do: []
-
-      defoverridable(default_options: 1)
-
       defoverridable(child_spec: 1)
 
       # additional functions
 
       def history(struct, opts \\ []) do
-        ExAudit.Queryable.history(__MODULE__, struct, opts)
+        ExAudit.Queryable.history(
+          __MODULE__,
+          struct,
+          &Ecto.Repo.Queryable.all/3,
+          Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
+        )
       end
 
       def revert(version, opts \\ []) do
-        ExAudit.Queryable.revert(__MODULE__, version, opts)
+        ExAudit.Queryable.revert(
+          __MODULE__,
+          version,
+          Ecto.Repo.Supervisor.tuplet(__MODULE__, opts)
+        )
       end
 
       def history_query(struct) do
@@ -227,8 +232,7 @@ defmodule ExAudit.Repo do
      This will shift the ids of the versions one down, so visualisations are correct and corresponding "Revert"
      buttons revert the struct back to the visualized state.
      Will append an additional version that contains the oldest ID and the oldest struct known. In most cases, the
-     `original` will be `nil` which means if this version would be reverted, the struct would be deleted.
-     `false` by default.
+     `original` will be `nil` which means if this version would be reverted, the struct would be deleted. `false` by default.
   """
   @callback history(struct, opts :: list) :: [version :: struct]
 
@@ -247,6 +251,4 @@ defmodule ExAudit.Repo do
   """
   @callback revert(version :: struct, opts :: list) ::
               {:ok, struct} | {:error, changeset :: Ecto.Changeset.t()}
-
-  @callback default_options(operation :: atom) :: keyword
 end
